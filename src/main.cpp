@@ -6,7 +6,7 @@
 #include "AdaptiveFilter.h"
 
 #define PWR_LED 13
-#define CTL_FREQ false
+#define CTL_FREQ true
 
 AudioOutputI2S i2s1;
 AudioSynthWaveform wave;
@@ -93,7 +93,7 @@ void controlFrequency(float f1, float f2)
 
   AudioNoInterrupts();
   wave.frequency(f1);
-  wave2.frequency(f2);
+  //wave2.frequency(f2);
   AudioInterrupts();
 }
 
@@ -113,7 +113,7 @@ void controlFilter(float taps, float mu) {
 
 void loop()
 {
-  float knob0 = normalize(analogRead(A3));
+  float knob0 = normalize(analogRead(A6));
   float knob1 = normalize(analogRead(A2));
 
   if (CTL_FREQ) controlFrequency(knob0, knob1);
