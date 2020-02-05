@@ -49,8 +49,10 @@ public:
 
     void reset(uint32_t blockSize);
     void zeroCoeff();
+    void freeze();
 
 private:
+    bool freezeCoeffs;                             /* Make filter non adaptive */ 
     uint16_t numTaps;                              /* Number of filter coefficients in the filter */
     q15_t *coefficients;
     q15_t *buffer;
