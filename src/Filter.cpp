@@ -32,6 +32,9 @@ Filter::Filter(uint16_t tap_count, q15_t learing_rate, uint32_t blockSize)
 
     /* Initialise x0 to zero */
     x0 = 0;
+
+    /* Initialize nonfreezing */
+    freezeCoeffs = false;
 }
 
 void Filter::block(q15_t *pSrc, q15_t *pRef, q15_t *pOut, q15_t *pErr, uint32_t blockSize)
@@ -129,6 +132,7 @@ void Filter::block(q15_t *pSrc, q15_t *pRef, q15_t *pOut, q15_t *pErr, uint32_t 
         /* Initialize coefficient pointer */
         pb = pCoeffs;
 
+        //if(freezeCoeffs == false) {
         /* Initialize tapCnt with number of samples */
         tapCnt = numTaps;
 
@@ -141,6 +145,7 @@ void Filter::block(q15_t *pSrc, q15_t *pRef, q15_t *pOut, q15_t *pErr, uint32_t 
             /* Decrement loop counter */
             tapCnt--;
         }
+        //}
 
         x0 = *pState;
 
@@ -216,4 +221,8 @@ void Filter::set_taps(uint16_t taps, uint32_t blockSize) {
 
     // update taps variable
     numTaps = taps;
+}
+
+void Filter::freeze() {
+    freezeCoeffs = !freezeCoeffs;
 }

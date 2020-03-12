@@ -3,42 +3,125 @@
 #include <Wire.h>
 #include <SPI.h>
 #include <SerialFlash.h>
-#include "AdaptiveFilter.h"
+#include <utils.h>
+#include <AnalogSmooth.h>
+#include <Patching.h>
 
 #define PWR_LED 13
-#define CTL_FREQ false
+#define SWITCH1 2
+#define SWITCH2 3
+#define CTL_FREQ true
 
-AudioOutputI2S i2s1;
-AudioSynthWaveform wave;
-AudioSynthWaveform wave2;
-AdaptiveFilter filter;
-AudioConnection patchCord1(wave, 0, filter, 0);
-AudioConnection patchCord2(wave2, 0, filter, 1);
-AudioConnection patchCord3(filter, 0, i2s1, 0);
-AudioConnection patchCord4(filter, 0, i2s1, 1);
+// Smoothing analog reads (window size 10)
+AnalogSmooth as1 = AnalogSmooth(10);
+AnalogSmooth as2 = AnalogSmooth(10);
+AnalogSmooth as3 = AnalogSmooth(10);
+AnalogSmooth as4 = AnalogSmooth(10);
+AnalogSmooth as5 = AnalogSmooth(10);
 
-AudioControlSGTL5000 sgtl5000_1;
-const int myInput = AUDIO_INPUT_LINEIN;
+bool lastSwitchState = false;
+unsigned long SerialMillisecondCounter;
+
+
+/**
+ * @brief Debug printing of Peak and RMS info
+ * 
+ */
+void print_peak_rms()
+{
+  if (peak.available() && rms.available())
+  {
+    Serial.printf("Peak: %f \t RMS: %f\n", peak.read(), rms.read());
+    //amp1.gain(as1.smooth(rms.read()));
+  }
+}
+
+/**
+ * @brief Control frequency of internal oscillators
+ * 
+ * @param f1 frequency one (between 0 and 1)
+ * @param f2 frequency two (between 0 and 1)
+ */
+void controlFrequency(float f1, float f2)
+{
+  f1 = toFreq(f1);
+  f2 = toFreq(f2);
+
+  // Serial.printf("FREQ: %f \t %f\n", f1, f2);
+
+  AudioNoInterrupts();
+  wave.frequency(f1);
+  wave2.frequency(f2);
+  AudioInterrupts();
+}
+
+/**
+ * @brief Control amplitude of internal oscillators
+ * 
+ * @param a1 amplitude 1
+ * @param a2 amplitude 2
+ */
+void controlAmp(float a1, float a2)
+{
+
+  // Serial.printf("AMP: %f \t %f\n", a1, a2);
+
+  AudioNoInterrupts();
+  wave.amplitude(a1);
+  wave2.amplitude(a2);
+  AudioInterrupts();
+}
+
+/**
+ * @brief Control adaptive filter parameters
+ * 
+ * @param taps change number of taps
+ * @param mu change learning rate
+ */
+void controlFilter(float taps, float mu)
+{
+
+  // Desired range: 1 --> 0.0001
+  mu = 0.001 + mu * 0.1;
+  uint16_t tapCount = 1 + (uint16_t)(round(taps * 50.0));
+
+  Serial.printf("Mu: %f \t Taps: %d\n", mu, tapCount);
+
+  AudioNoInterrupts();
+  filter.set_mu(mu);
+  // filter.set_taps(tapCount);
+  AudioInterrupts();
+}
 
 void setup()
 {
   // debug output at 9600 baud
   Serial.begin(9600);
 
-  delay(300);
+  delay(2000);
+
   //Setup power LED
   pinMode(PWR_LED, OUTPUT);
   digitalWrite(PWR_LED, HIGH);
 
-  AudioMemory(20);
+  // Setup switches
+  pinMode(SWITCH1, INPUT);
+  pinMode(SWITCH2, INPUT);
+
+  AudioMemory(30);
 
   // Comment these out if not using the audio adaptor board.
   // This may wait forever if the SDA & SCL pins lack
   sgtl5000_1.enable();
-  sgtl5000_1.volume(.3); // caution: very loud - use oscilloscope only!
+  sgtl5000_1.volume(0.3); // caution: very loud - use oscilloscope only!
   sgtl5000_1.inputSelect(myInput);
+
+  sgtl5000_1.lineInLevel(0);   // 3.12 volts p-p
+  sgtl5000_1.lineOutLevel(31); // 3.16 volts p-p
+
   Serial.println("Audio Shield connected");
 
+  // Setup internal waveforms
   wave.begin(WAVEFORM_SQUARE);
   wave.frequency(110.0);
   wave.amplitude(.5);
@@ -48,74 +131,57 @@ void setup()
   wave2.amplitude(.5);
 
   filter.begin(10, 0.01);
-  delay(1000);
+
+  delay(2000);
+  notreFreq.begin(0.15);
+
+  SerialMillisecondCounter = millis();
 }
 
-float power(float base, int exp) {
-
-  float ans = 1.0;
-
-  for(int i=0; i<exp; i++)
-      ans *= base;
-
-  return ans;
+/**
+ * @brief Detect incoming signal not frequency
+ * 
+ * @return float frequency
+ */
+float frequencyDetection() {
+    float freq = notreFreq.read();
+    float prob = notreFreq.probability();
+    Serial.printf("Note freq:%f\t prob: %f\n", freq, prob);
+    return freq;
 }
 
-float round_x(float var, int decimals)
-{
-  // 37.66666 * 100 =3766.66
-  // 3766.66 + .5 =3767.16    for rounding off value
-  // then type cast to int so value is 3767
-  // then divided by 100 so the value converted into 37.67
-
-  int precision = power(10.0, decimals);
-
-  float value = (int)(var * precision + .5);
-  return (float)value / precision;
-}
-
-float normalize(float in)
-{
-  return round_x(1.0 - in / 1023.0, 2);
-}
-
-float toFreq(float val)
-{
-  return 10.0 + val * 500.0;
-}
-
-void controlFrequency(float f1, float f2)
-{
-  f1 = toFreq(f1);
-  f2 = toFreq(f2);
-
-  Serial.printf("Freq: %f \t %f\n", f1, f2);
-
-  AudioNoInterrupts();
-  wave.frequency(f1);
-  wave2.frequency(f2);
-  AudioInterrupts();
-}
-
-void controlFilter(float taps, float mu) {
-
-  // Desired range: 1 --> 0.0001
-  mu = 0.001 + mu * 0.7;
-  uint16_t tapCount = 1 + (uint16_t) (round_x(taps * 50.0, 0));
-
-  Serial.printf("Mu: %f \t Taps: %d\n", mu, tapCount);
-
-  AudioNoInterrupts();
-  filter.set_mu(mu);
-  filter.set_taps(tapCount);
-  AudioInterrupts();
-}
 
 void loop()
 {
-  float knob0 = normalize(analogRead(A3));
-  float knob1 = normalize(analogRead(A2));
+  // Smooth reading of knob values
+  float knob4 = normalize(as4.analogReadSmooth(A0));
+  float knob3 = normalize(as3.analogReadSmooth(A2));
+  float knob2 = normalize(as2.analogReadSmooth(A3), 545);
+  float knob1 = normalize(as1.analogReadSmooth(A8), 545);
 
-  if (CTL_FREQ) controlFrequency(knob0, knob1);
-  else controlFilter(knob0, knob1);
+  if (millis() - SerialMillisecondCounter >= 5000)
+  {
+    //print_stats();
+    SerialMillisecondCounter = millis();
+    // Serial.printf("Knobs: %f \t %f \t %f \t %f \n", knob1, knob2, knob3, knob4);
+  }
+
+  // if(notreFreq.available()) {
+
+  //   float freq = round(frequencyDetection() * knob3);
+  //   wave2.frequency(freq);
+  // }
+
+  controlFrequency(knob4, knob3);
+  // // controlAmp(knob3, knob4);
+
+  // Knob 1 and 2 control the amplitude of signals
+  amp1.gain(knob1);
+  amp2.gain(knob2);
+  // controlFilter(0, knob4);
+  // bool switchState = digitalRead(SWITCH2);
+  // if (switchState != lastSwitchState)
+  // {
+  //   lastSwitchState = switchState;
+  // }
 }

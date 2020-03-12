@@ -21,6 +21,8 @@ public:
     /**
      * Constructor
      * @param tap_count Amount of taps/coefficients
+     * @param learning_rate Learning rate
+     * @param blockSize how big are the audio blocks
      */
     Filter(uint16_t tap_count, q15_t learning_rate, uint32_t blockSize);
 
@@ -30,7 +32,7 @@ public:
      * @param pRef reference signal pointer
      * @param pOut output pointer
      * @param pErr error pointer
-     * @param block_size size of this block
+     * @param blockSize size of this block
      */
     void block(q15_t *pSrc, q15_t *pRef, q15_t *pOut, q15_t *pErr, uint32_t blockSize);
 
@@ -43,17 +45,32 @@ public:
     /**
      * sets new tap count
      * @param taps new tap count
-     * @param block_size size of this block
+     * @param blockSize size of this block
      */
     void set_taps(uint16_t taps, uint32_t blockSize);
 
+    /**
+     * @brief Reset the filter state
+     * 
+     * @param blockSize 
+     */
     void reset(uint32_t blockSize);
+    /**
+     * @brief Reset the coefficient state
+     * 
+     */
     void zeroCoeff();
+    /**
+     * @brief Freeze coefficient state
+     * 
+     */
+    void freeze();
 
 private:
+    bool freezeCoeffs;                             /* Make filter non adaptive */ 
     uint16_t numTaps;                              /* Number of filter coefficients in the filter */
-    q15_t *coefficients;
-    q15_t *buffer;
+    q15_t *coefficients;                           /* Pointer to coefficient array */
+    q15_t *buffer;                                 /* Pointer to state array */
     q15_t mu;                                      /* Adaptive factor */
     q15_t energy;                                  /* Energy of the input */
     q15_t x0;                                      /* Temporary variable to hold input sample */
