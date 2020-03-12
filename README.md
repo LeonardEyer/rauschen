@@ -1,6 +1,6 @@
 # Rauschen
 
-Realtime adaptive filtering for modular synthesis using teensy
+Realtime adaptive filtering for modular synthesis using a teensy
 
 ## Getting Started
 
@@ -8,10 +8,19 @@ Fetch this repository using ```git clone ```
 
 ### Prerequisites
 
+* Teensy 3.1 or newer
+
+* Matching teensy audio shield
+
+* Connect teensy via USB
+
 * [Install](https://platformio.org/platformio-ide) PIO
 
 * Edit PIO [config](platformio.ini) and set desired deployment target (Teensy 4.0 default)
 
+### Setting up teensy ports
+
+* TODO: ADD instructions
 
 <!-- ### Installing
 
@@ -51,9 +60,9 @@ Explain what these tests test and why
 Give an example
 ``` -->
 
-<!-- ## Deployment
+## Deployment
 
-Add additional notes about how to deploy this on a live system -->
+Deploy using PIO
 
 ## Authors
 
