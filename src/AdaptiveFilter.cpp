@@ -28,6 +28,7 @@ void AdaptiveFilter::update(void)
 	err = allocate();
 	if (out && err)
 	{
+		// Adaptive filtering of this block
 		arm_lms_norm_q15(&lms_norm_inst, (q15_t*) x->data,(q15_t*) y->data,(q15_t*) out->data,(q15_t*) err->data, AUDIO_BLOCK_SAMPLES);
 		// nlms->block((q15_t*) x->data,(q15_t*) y->data,(q15_t*) out->data,(q15_t*) err->data, AUDIO_BLOCK_SAMPLES);
 
@@ -38,5 +39,4 @@ void AdaptiveFilter::update(void)
 	release(err);
 	release(x);
 	release(y);
-	;
 }
