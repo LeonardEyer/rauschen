@@ -1,4 +1,4 @@
-#define MAX_ANALOG_READ 439.0
+#define MAX_ANALOG_READ 1023.0
 
 float power(float base, int exp)
 {
@@ -11,6 +11,13 @@ float power(float base, int exp)
   return ans;
 }
 
+/**
+ * @brief Round value to number of decimals
+ * 
+ * @param var Value to round
+ * @param decimals how many decimals after ,
+ * @return float 
+ */
 float round_x(float var, int decimals)
 {
   // 37.66666 * 100 =3766.66
@@ -24,16 +31,33 @@ float round_x(float var, int decimals)
   return (float)value / precision;
 }
 
-float normalize(float in)
+/**
+ * @brief Normalize value between 0 and one
+ * 
+ * @param in the value to normalize
+ * @param max maximum value (will equal to 1)
+ * @return float 
+ */
+float normalize(float in, float max=MAX_ANALOG_READ)
 {
-  return 1.0 - round_x(in / MAX_ANALOG_READ, 3);
+  return 1.0 - round_x(in / max, 3);
 }
 
+/**
+ * @brief Conversion to frequency range
+ * 
+ * @param val 
+ * @return float 
+ */
 float toFreq(float val)
 {
   return 10.0 + val * 500.0;
 }
 
+/**
+ * @brief Print Usage stats
+ * 
+ */
 void print_stats() {
 
     Serial.print("Proc = ");
