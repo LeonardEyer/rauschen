@@ -1,6 +1,7 @@
 # Rauschen
 
-Realtime adaptive filtering for modular synthesis using a teensy
+Realtime adaptive filtering for modular synthesis using a teensy.
+More about the general principle of adaptive filtering as synthesis technique: [Here](Idea.pdf)
 
 ## Getting Started
 
