@@ -18,9 +18,9 @@ Fetch this repository using ```git clone ```
 
 * Edit PIO [config](platformio.ini) and set desired deployment target (Teensy 4.0 default)
 
-### Setting up teensy ports
+### Building the Filter
 
-* TODO: ADD instructions
+Check the [schematics](hardware/Filter_V0.2.sch)
 
 <!-- ### Installing
 
@@ -70,7 +70,7 @@ Deploy using PIO
 
 ## Authors
 
-* **Victor Höller** - *Electical engineering work*
+* **Victor Höller** - *Schematics and PCB design*
 * **Leonard Eyer** - *Programming*
 
 ## License
